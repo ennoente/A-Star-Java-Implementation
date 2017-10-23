@@ -16,28 +16,41 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 public class A_Star extends JPanel {
+	/** The two possible modes for clicking on a cell */
+	private static final int CELL_CLICK_SET_WOODS = 0;
+	private static final int CELL_CLICK_SET_BLOCKED = 1;
+
+	/** The two possible modes for pressing ENTER */
+	private static final int ENTER_MAKE_ONE_STEP = 2;
+	private static final int ENTER_COMPLETE_AUTOMATICALLY = 3;
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 
-	public static int CELL_COUNT = 20;
+	private static int CELL_COUNT = 20;
+	private static final int DIAGONAL_COST = 14;
+	private static final int V_H_COST = 10;
 
-	public int CELLS_HORIZONTAL, CELLS_VERTICAL;
-
-//	public static final int DIAGONAL_COST = 20;
-	public static final int DIAGONAL_COST = 14;
-	public static final int V_H_COST = 10;
-
+	/** The frame/window containing the main panel */
 	JFrame frame;
+	
+	/** The main panel containing the grid */
 	JPanel panel;
 
+	/** Storing the scaled cell width and height */
 	int cell_width = -1;
 	int cell_height = -1;
 
-	Comparator<Cell> comparator = new Comparator<A_Star.Cell>() {
+	/** The modes for clicking on a cell or pressing enter */
+	int cell_click;
+	int enter_pressed;
 
+	/** The comparator for sorting the PriorityQueue -> open set
+	 *	Polling the queue grabs the Cell object with the lowest f-cost  
+	 */
+	Comparator<Cell> comparator = new Comparator<A_Star.Cell>() {
 		@Override
 		public int compare(Cell c1, Cell c2) {
 			return c1.finalCost < c2.finalCost ? -1:
@@ -46,70 +59,81 @@ public class A_Star extends JPanel {
 	};
 
 	public class Cell extends JPanel {
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 6829405847730608406L;
+		
+		// X- and Y- coordinate
 		private int x;
 		private int y;
+		
+		// The heuristic cost of the cell object
 		private int heuristicCost = 0;
+		
+		// The final cost of this cell object
 		private int finalCost = 0;
+		
+		// The velocity factor of this cell object
 		private float vel_factor = 1;
-		private boolean isPartOfPath = false;
 
+		// If this cell object is part of the path, this stores the parent cell -> cell before this one
 		private Cell parent;
 
+		/**
+		 * 
+		 * @param ind_x
+		 * @param ind_y
+		 */
 		private Cell(int ind_x, int ind_y) {
 			x = ind_x;
 			y = ind_y;
 
 			addMouseListener(new MouseListener() {
+				@Override
+				public void mouseReleased(MouseEvent e) { }
 
 				@Override
-				public void mouseReleased(MouseEvent e) {
-					// TODO Auto-generated method stub
-
-				}
+				public void mousePressed(MouseEvent e) { }
 
 				@Override
-				public void mousePressed(MouseEvent e) {
-					// TODO Auto-generated method stub
-
-				}
+				public void mouseExited(MouseEvent e) { }
 
 				@Override
-				public void mouseExited(MouseEvent e) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void mouseEntered(MouseEvent e) {
-					// TODO Auto-generated method stub
-
-				}
+				public void mouseEntered(MouseEvent e) { }
 
 				@Override
 				public void mouseClicked(MouseEvent e) {
-//					if ()
-					vel_factor = 0.5f;
-					setBackground(Color.decode("#D2691E"));
-					repaint();
-					
-//					panel.remove(Cell.this);
-//					setBlocked(x, y);
-					
-					panel.revalidate();
-					panel.repaint();
+					if (cell_click == CELL_CLICK_SET_WOODS) {
+						vel_factor = 0.5f;
+						setBackground(Color.decode("#D2691E"));
+						repaint();
+					} else if (cell_click == CELL_CLICK_SET_BLOCKED) {
+						panel.remove(Cell.this);
+						setBlocked(x, y);
+						panel.repaint();
+					}
 				}
 			});
-
-			//			heuristicCost = Math.abs(x - endX) + Math.abs(y - endY);
 		}
 
+		/**
+		 * Prepares the cell to be drawn by scaling the size to the appropriate width and height,
+		 * moving the cell and drawing the border.
+		 * If the cell is marked as slow (only half the speed) then set the background to brown.
+		 * @param width
+		 * @param height
+		 */
 		void drawOnCanvas(int width, int height) {
+			// Scale width, height and location
 			setSize(width, height);
 			setLocation(width * x, height * y);
-			//			System.out.println("Set location to " + getLocation());
+
+			// Set background to brown if cell is part of woods
 			if (vel_factor == 0.5f) setBackground(Color.decode("#D2691E"));
+
+			// Draw border in grid
 			setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-			repaint();
 		}
 
 		@Override
@@ -128,10 +152,6 @@ public class A_Star extends JPanel {
 		}
 	}
 
-	//	int[][] blocked;
-
-	//	Cell[] cells;
-	//	ArrayList<Cell> cells;
 	Cell[][] mCells;
 	Cell startCell;
 	Cell endCell;
@@ -146,10 +166,13 @@ public class A_Star extends JPanel {
 
 	long t_start, t_end;
 
-
-
+	/**
+	 * 
+	 * @param currentCell The cell in the grid currently being checked
+	 * @param t One of the neighboring cells of @currentCell
+	 * @param cost The cost of the new cell
+	 */
 	public void checkAndUpdateCost(Cell currentCell, Cell t, int cost) {
-		//		if (blocked[t.x][t.y] || closed[t.x][t.y]) return;
 		if (t == null || closed[t.x][t.y]) return;
 
 		int t_final_cost = (currentCell.finalCost - currentCell.heuristicCost) + t.heuristicCost + (int) (cost * (1 / t.vel_factor));
@@ -165,31 +188,21 @@ public class A_Star extends JPanel {
 		}
 	}
 
-	//	private int expandCellsArray() {
-	//		int index = cells.length;
-	//		cells = Arrays.copyOf(cells, cells.length + 1);
-	//		return index;
-	//	}
-
 	boolean finished = false;
-	int i = 0;
 
-	public void findPath() throws IllegalArgumentException {
+	/**
+	 * The last method to be called on the algorithm object.
+	 * Sets the KeyListener for the frame to start the algorithm once ENTER is pressed.
+	 * @return The new algorithm object.
+	 * @throws IllegalArgumentException if no start or final cell has been set.
+	 */
+	public A_Star prepare() throws IllegalArgumentException {
 		if (endCell == null)
 			throw new IllegalArgumentException("You have to set a final end cell!", new Throwable("No end cell set"));
 		if (startCell == null)
 			throw new IllegalArgumentException("You have to set a starting cell!", new Throwable("No starting cell set"));
 
-		buildGUI();
-
-		long start = System.currentTimeMillis();
-
-		endCell.finalCost = 0;
-
 		open.add(startCell);
-		Cell current = null;
-
-		//		int i = 0;
 
 		frame.addKeyListener(new KeyListener() {
 			public void keyTyped(KeyEvent e) {}
@@ -198,74 +211,77 @@ public class A_Star extends JPanel {
 			public void keyPressed(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER && !finished) {
 					System.out.println("Finding path...");
-					
-//					whileLoop(); 												// De-comment this line to make a step each time you press ENTER
-
-					long start = System.currentTimeMillis();																// De-Comment this
-																															// to let the algorithm
-					while (!finished)																						// find the path
-						whileLoop();																						// automatically and
-																															// record
-					System.out.println("Algorithm itself took " + (System.currentTimeMillis() - start) + " Miliseconds");	// the time
+					if (enter_pressed == ENTER_MAKE_ONE_STEP) {
+						whileLoop();
+					} else if (enter_pressed == ENTER_COMPLETE_AUTOMATICALLY) {
+						long start = System.currentTimeMillis();
+						while (!finished)
+							whileLoop();
+						System.out.println("Algorithm itself took " + (System.currentTimeMillis() - start) + " Miliseconds");
+					}
 				}
 			}
 		});
+		return this;
 	}
 
+	/**
+	 * Called once the algorithm has finished.
+	 * Prints the path to the console and draws the tiles on the panel.
+	 * @param success
+	 */
 	private void finished(boolean success) {
 		this.finished = true;
+		
 		if (success) {
-			System.out.println("Success!");
-			//			System.out.println("Algorithm finished!");
-			//			System.out.println("Scores for cells: " + System.lineSeparator());
-			//			System.out.println("Algorithm took " + (System.currentTimeMillis() - t_start) + " Miliseconds");
+			System.out.println(System.lineSeparator() + "Success!");
 
-			Cell[] partOfPath = new Cell[0];
-			// Trace back path
+			// Print the path cells to console
 			System.out.println("Path: ");
 			Cell current = mCells[endX][endY];
-			//			System.out.print(current.toString());
-			//			Cell current = getCellByCoords(endX, endY);
 			System.out.println(current);
-			int i = 0;
 			mCells[current.x][current.y].setBackground(Color.CYAN);
-			//			getCellByCoords(current.x, current.y).setBackground(Color.CYAN);
+			
 			while (current.parent != null) {
+				// Color the path cyan and mark as part of that
 				mCells[current.parent.x][current.parent.y].setBackground(Color.CYAN);
-				//				getCellByCoords(current.parent.x, current.parent.y).setBackground(Color.CYAN);
-
-				mCells[current.parent.x][current.parent.y].isPartOfPath = true;
-				//				getCellByCoords(current.parent.x, current.parent.y).isPartOfPath = true;
+				
+				// Print current path node to console
 				System.out.print(" -> " + current.parent.toString());
+				
+				// Go through all nodes that are part of the path
 				current = current.parent;
-				i++;
 			}
-			System.out.println();
 		} else {
-//			System.out.println("Fail!");
-			System.out.println();
-			System.out.println("No possible path. I am so sorry.");
-			System.out.println();
+			System.out.println(System.lineSeparator() + "No possible path. I am so sorry.");
 		}
 	}
 
+	/**
+	 * The algorithm loop
+	 */
 	private void whileLoop() {
+		// Get node with lowest f-cost
 		Cell current = open.poll();
-		//		System.out.println("Current has f-cost of '" + current.finalCost + "'");
+		
+		// If no nodes are in the open set there is no possible path
 		if (current == null) {
 			finished(false);
-			finished = true;
 			return;
 		}
 
-		closed[current.x][current.y] = true;
-		mCells[current.x][current.y].setBackground(Color.RED);
-		
-		if (current.x == endX && current.y == endY) {
+		// If the current node is the end node we are finished
+		if (current.x == endX && current.y == endY)
 			finished(true);
-			finished = true; // We did it!
-		}
 
+		// Move the current node from the open set to the closed set since we are checking it now
+		closed[current.x][current.y] = true;
+		
+		// Mark the current node red since it is now in the closed set
+		mCells[current.x][current.y].setBackground(Color.RED);
+
+		// The current cell's neighbor
+		// We now check every neighbor of @current
 		Cell t;
 
 		// Neighbor to the left
@@ -315,55 +331,58 @@ public class A_Star extends JPanel {
 				checkAndUpdateCost(current, t, DIAGONAL_COST);
 			}
 		}
-
 	}
 
 
-
-
-
-
 	/**
-	 * The following methods have to be called in order for the algorithm to work:
-	 * 		- {@link #setStartCell(int, int)}
-	 * 		- {@link #setEndCell(int, int)}
-	 * 
-	 * Insert blocked cells via {@link #setBlocked(Cell...)}
+	 * The constructor for a new algorithm object.
+	 * Sets up the window, main panel.
+	 * Initializes the algorithm arrays.
+	 * initializes the scaled cell width and cell height
 	 */
 	public A_Star(int cells_horizontal, int cells_vertical) {
-		CELLS_HORIZONTAL = cells_horizontal;
-		CELLS_VERTICAL = cells_vertical;
-
 		long t_start = System.currentTimeMillis();
-		
+
+		// Initialize the cell grid, the closed set, the blocked set and the open set.
 		mCells = new Cell[cells_horizontal][cells_vertical];
 		closed = new boolean[cells_horizontal][cells_vertical];
 		blocked = new boolean[cells_horizontal][cells_vertical];
 		open = new PriorityQueue<Cell>(comparator);
 
+		// Setup the window
 		frame = new JFrame("A* Pathfinding algorithm");
 		frame.setLayout(null);
-		frame.setSize(1300, 1300);
+		frame.setSize(1000, 1000);
 		frame.setLocation(400, 300);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setVisible(true);
-
+		
+		// The cell width and height. Used for scaling the cells onto the main panel-
 		cell_width = (frame.getWidth()) / cells_horizontal;
 		cell_height = (frame.getHeight()) / cells_vertical;
 
+		// The main panel
 		panel = new JPanel();
 		panel.setLayout(null);
 		panel.setSize(frame.getWidth(), frame.getHeight());
 		panel.setBackground(Color.BLACK);
 
+		// Add panel to frame and request focus to work with the ENTER keys
 		frame.add(panel);
 		frame.requestFocus();
 
+		// Debugging
 		System.out.println("Setting up UI took " + (System.currentTimeMillis() - t_start) + " Miliseconds"	);
 		frame.setSize(frame.getWidth() + 35, frame.getHeight() + 85);
 	}
 
-	private void buildGUI() {
+	/**
+	 * Scales the cells to the appropriate width and height
+	 * and adds them to the main panel.
+	 * Paints the start node and end node blue.
+	 * @return
+	 */
+	private A_Star scaleAndDrawGrid() {
 		for (int x = 0; x < mCells.length; x++) {
 			for (int y = 0; y < mCells[0].length; y++) {
 				if (mCells[x][y] != null) {
@@ -376,27 +395,45 @@ public class A_Star extends JPanel {
 
 		mCells[endX][endY].setBackground(Color.BLUE);
 		mCells[startX][startY].setBackground(Color.BLUE);
+		
+		return this;
 	}
 
+	/**
+	 * Sets the start node for this algorithm object.
+	 * @param ind_x The x coordinate in the grid
+	 * @param ind_y The y coordinate in the grid
+	 * @return The new algorithm object
+	 */
 	public A_Star setStartCell(int ind_x, int ind_y) {
 		startCell = new Cell(ind_x, ind_y);
 		mCells[ind_x][ind_y] = new Cell(ind_x, ind_y);
-		
+
 		startX = ind_x;
 		startY = ind_y;
 
 		return this;
 	}
 
+	/**
+	 * Sets the end node for this algorithm object.
+	 * @param ind_x The x coordinate in the grid
+	 * @param ind_y The y coordinate in the grid
+	 * @return The new algorithm object
+	 */
 	public A_Star setEndCell(int ind_x, int ind_y) {
 		endCell = new Cell(ind_x, ind_y);
 		mCells[ind_x][ind_y] = new Cell(ind_x, ind_y);
 		endX = ind_x;
 		endY = ind_y;
-		
+
 		return this;
 	}
 
+	/**
+	 * Initializes the grid and sets the heuristic cost for every node in it.
+	 * @return The new algorithm object
+	 */
 	public A_Star setupGrid() {
 		System.out.println("Setting up grid");
 		for (int x = 0; x < mCells.length; x++) {
@@ -409,66 +446,82 @@ public class A_Star extends JPanel {
 		return this;
 	}
 
+	/**
+	 * Marks a node/cell as blocked.
+	 * Removes the cell from the grid and marks its spot in the closed set as true.
+	 * @param x The x coordinate in the grid
+	 * @param y The y coordinate in the grid
+	 * @return
+	 */
 	public A_Star setBlocked(int x, int y) {
 		mCells[x][y] = null;
 		closed[x][y] = true;
 		return this;
 	}
+	
+	/**
+	 * Specifies which action to to when ENTER is pressed
+	 * Two options are available:
+	 * 		@ENTER_MAKE_ONE_STEP sets the algorithm to make one step each time the ENTER key is pressed
+	 * 		@ENTER_COMPLETE_AUTOMATICALLY sets the algorithm to start once the ENTER key is pressed and then completes on its own.
+	 * @param mode The mode what happens when ENTER is pressed
+	 * @return
+	 */
+	public A_Star setEnterMode(int mode) {
+		this.enter_pressed = mode;
+		return this;
+	}
+	
+	/**
+	 * Specifies which action to do when a cell is clicked on
+	 * Two options are available:
+	 * 		@CELL_CLICK_SET_WOODS make the cell "woods". Simulates moving through at only half the speed.
+	 * 		@CELL_CLICK_SET_BLOCKED marks the cell as blocked and makes it an obstacle
+	 * @param mode The mode what happens when a cell is clicked on
+	 * @return
+	 */
+	public A_Star setCellClickMode(int mode) {
+		this.cell_click = mode;
+		return this;
+	}
 
-	public static void main(String[] args) {
-		A_Star algorithm = new A_Star(CELL_COUNT, CELL_COUNT)
-				.setStartCell(0, 0)
-				.setEndCell(CELL_COUNT - 1, CELL_COUNT - 1)
-				.setupGrid();
 
+	/**
+	 *  Inserts random blocked and "slow" cells into the grid
+	 */
+	public A_Star insertRandomObstacles() {
 		for (int i = 0; i < 500; i++) {
 			int x = (int) (Math.random() * CELL_COUNT);
 			int y = (int) (Math.random() * CELL_COUNT);
-			
-			if (x == algorithm.startX && y == algorithm.startY) continue;
-			if (x == algorithm.endX && y == algorithm.endY) continue;
-			
+
+			if (x == startX && y == startY) continue;
+			if (x == endX && y == endY) continue;
+
 			if (Math.random() < 0.4)
-				algorithm.setBlocked(x, y);
+				setBlocked(x, y);
 			else {
-			if (!algorithm.closed[x][y]) 
-				algorithm.mCells[x][y].vel_factor = 0.5f;
+				if (!closed[x][y]) 
+					mCells[x][y].vel_factor = 0.5f;
 			}
 		}
-
-		algorithm.t_start = System.currentTimeMillis();
-		algorithm.findPath();
-
-		//		System.out.println();
-		//		for (int y = 0; y < CELL_COUNT; y++) {
-		//			for (int x = 0; x < CELL_COUNT; x++) {
-		//				if (algorithm.mCells[x][y] != null) {
-		//					if (x == algorithm.startX && y == algorithm.startY) System.out.print("-A- ");
-		//					else if (x == algorithm.endX && y == algorithm.endY) System.out.print("-E- ");
-		//					else if (algorithm.mCells[x][y].isPartOfPath) {
-		//						System.out.print("x   ");
-		//						algorithm.mCells[x][y].setBackground(Color.CYAN);
-		//					}
-		//					else System.out.printf("%-3d ", algorithm.mCells[x][y].finalCost);
-		//				}
-		//				else System.out.print("BL  ");
-		//			}
-		//			System.out.println();
-		//		}
+		return this;
 	}
 
-	//	public Cell getCellByCoords(int x, int y) {
-	//		for (int i = 0; i < cells.size(); i++) 
-	//			if (cells.get(i).x == x && cells.get(i).y == y) return cells.get(i);
-	//
-	//		return null;
-	//	}
+	/**
+	 * Creates a new algorithm object and starts the algorithm.
+	 * @param args
+	 */
+	public static void main(String[] args) {
+		A_Star algorithm = new A_Star(CELL_COUNT, CELL_COUNT)
+				.setEnterMode(ENTER_MAKE_ONE_STEP)
+				.setCellClickMode(CELL_CLICK_SET_WOODS)
+				.setStartCell(0, 0)
+				.setEndCell(CELL_COUNT - 1, CELL_COUNT - 1)
+				.setupGrid();
+		
+		algorithm.insertRandomObstacles().scaleAndDrawGrid();
 
-	//	@Override
-	//	public void paintComponent(Graphics g) {
-	//		super.paintComponent(g);
-	//		Graphics2D g2d = (Graphics2D) g;
-	//
-	//
-	//	}
+		algorithm.t_start = System.currentTimeMillis();
+		algorithm.prepare();
+	}
 }
