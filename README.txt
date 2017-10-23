@@ -11,8 +11,7 @@ Generally, I learned what I know about the A* algorithm from these sources:
     YouTube: Sebastian Lague
     A* explanation                      https://www.youtube.com/watch?v=-L-WgKMFuhE
     
-I strongly recommend watching Sebastian Lague's explanation. IMHO it is the best explanation of the algorithm i know.
-    
+
 There are several smaller changes I made to codebytes' code.
 The biggest of which is that I built a GUI showing the progress,
 as well as the open set (green tiles), the closed set (red tiles) and the path once the algorithm has finished (cyan tiles).
