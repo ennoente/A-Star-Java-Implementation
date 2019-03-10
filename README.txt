@@ -12,7 +12,7 @@ Generally, I learned what I know about the A* algorithm from these sources:
     A* explanation                      https://www.youtube.com/watch?v=-L-WgKMFuhE
     
 
-There are several smaller changes I made to codebytes' code.
+There are several changes I made to codebytes' code.
 The biggest of which is that I built a GUI showing the progress,
 as well as the open set (green tiles), the closed set (red tiles) and the path once the algorithm has finished (cyan tiles).
 Another change is the option to press ENTER and let the algorithm complete on its own, or to make one step each time you press ENTER.
