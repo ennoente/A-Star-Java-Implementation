@@ -1,4 +1,4 @@
-#A-Star-Java-Implementation
+# A-Star-Java-Implementation
 This project is an implementation of the A* pathfinding algorithm for Java. It is based on code from "codebytes.in"
 
 Generally, I learned what I know about the A* algorithm from these sources:
